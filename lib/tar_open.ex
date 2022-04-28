@@ -1,3 +1,6 @@
+# NOTICE: originally ported from
+# https://github.com/erlang/otp/blob/61c4f8ede7d9b15b6f7f5dcadd6127c8d56e3e35/lib/stdlib/src/erl_tar.erl
+# using https://github.com/marianoguerra/efe
 defmodule TarOpen do
   require Record
 
