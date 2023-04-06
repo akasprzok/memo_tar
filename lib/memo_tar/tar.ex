@@ -10,7 +10,7 @@ defmodule MemoTar.Tar do
   Modified to accept a `:ram` file.
   """
 
-  use Bitwise
+  import Bitwise
   import Kernel, except: [to_string: 1]
   require Record
 
@@ -756,58 +756,6 @@ defmodule MemoTar.Tar do
           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
       ]
     )
-  end
-
-  def create(name, fileList)
-      when is_list(name) or
-             is_binary(name) do
-    create(name, fileList, [])
-  end
-
-  def create(name, fileList, options)
-      when is_list(name) or
-             is_binary(name) do
-    mode =
-      :lists.filter(
-        fn x ->
-          :erlang.or(x === :compressed, x === :cooked)
-        end,
-        options
-      )
-
-    case open(name, [:write | mode]) do
-      {:ok, tarFile} ->
-        do_create(tarFile, fileList, options)
-
-      {:error, _} = err ->
-        err
-    end
-  end
-
-  defp do_create(tarFile, [], _Opts) do
-    close(tarFile)
-  end
-
-  defp do_create(tarFile, [{nameInArchive, nameOrBin} | rest], opts) do
-    case add(tarFile, nameOrBin, nameInArchive, opts) do
-      :ok ->
-        do_create(tarFile, rest, opts)
-
-      {:error, _} = err ->
-        _ = close(tarFile)
-        err
-    end
-  end
-
-  defp do_create(tarFile, [name | rest], opts) do
-    case add(tarFile, name, name, opts) do
-      :ok ->
-        do_create(tarFile, rest, opts)
-
-      {:error, _} = err ->
-        _ = close(tarFile)
-        err
-    end
   end
 
   def add(reader, {nameInArchive, name}, opts)

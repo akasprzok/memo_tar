@@ -54,9 +54,35 @@ defmodule MemoTar do
       |> Enum.reject(&(&1 == "."))
 
     with {:ok, tar} <- open(),
-         :ok <- Enum.each(dirs, &add_directory(tar, &1)),
-         :ok <- Enum.each(files, fn {path, content} -> add_file(tar, path, content) end) do
+      :ok <- do_add_dirs(tar, dirs),
+      :ok <- do_add_files(tar, files) do
       close(tar)
+    end
+  end
+
+  defp do_add_files(_tar, []), do: :ok
+
+  defp do_add_files(tar, [{path, contents} | rest]) do
+    case add_file(tar, path, contents) do
+      :ok ->
+        do_add_files(tar, rest)
+
+      {:error, _} = err ->
+        _ = close(tar)
+        err
+    end
+  end
+
+  defp do_add_dirs(_tar, []), do: :ok
+
+  defp do_add_dirs(tar, [path | rest]) do
+    case add_directory(tar, path) do
+      :ok ->
+        do_add_dirs(tar, rest)
+
+      {:error, _} = err ->
+        _ = close(tar)
+        err
     end
   end
 
