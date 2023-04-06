@@ -23,16 +23,32 @@ defmodule MemoTar do
     end
   end
 
-  @spec add(t(), String.t(), binary()) :: :ok
-  def add(tar, path, content) do
+  @spec add_file(t(), Path.t(), binary()) :: :ok
+  def add_file(tar, path, content) do
     Tar.add(tar.tar_device, content, String.to_charlist(path), [])
   end
 
+  @spec add_directory(t(), Path.t()) :: :ok
+  def add_directory(tar, path) do
+    Tar.add_directory(tar.tar_device, String.to_charlist(path), [])
+  end
+
+  @spec close(t()) :: {:ok, binary()}
   def close(%__MODULE__{} = tar) do
     with :ok <- Tar.close(tar.tar_device),
       content <- read(tar.file_device),
       :ok <- File.close(tar.file_device) do
       {:ok, content}
+    end
+  end
+
+  @spec create([{Path.t(), binary()}]) :: {:ok, binary()} | {:error, term()}
+  def create(files) do
+    dirs = Enum.map(files, fn {path, _content} -> Path.dirname(path) end) |> Enum.uniq() |> Enum.reject(&(&1 == "."))
+    with {:ok, tar} <- open(),
+      :ok <- Enum.each(dirs, &add_directory(tar, &1)),
+      :ok <- Enum.each(files, fn {path, content} -> add_file(tar, path, content) end) do
+      close(tar)
     end
   end
 
