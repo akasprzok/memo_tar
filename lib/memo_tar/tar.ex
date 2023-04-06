@@ -1,7 +1,15 @@
-# NOTICE: originally ported from
-# https://github.com/erlang/otp/blob/61c4f8ede7d9b15b6f7f5dcadd6127c8d56e3e35/lib/stdlib/src/erl_tar.erl
-# using https://github.com/marianoguerra/efe
-defmodule Tar do
+defmodule MemoTar.Tar do
+  @moduledoc """
+  A transpiled version of the Erlang module `erl_tar` from OTP
+
+  Original source:
+  https://github.com/erlang/otp/blob/61c4f8ede7d9b15b6f7f5dcadd6127c8d56e3e35/lib/stdlib/src/erl_tar.erl
+
+  Transpiled using https://github.com/marianoguerra/efe
+
+  Modified to accept a `:ram` file.
+  """
+
   use Bitwise
   import Kernel, except: [to_string: 1]
   require Record
@@ -2969,7 +2977,9 @@ defmodule Tar do
 
   defp do_close(r_reader(handle: handle, func: fun))
        when is_function(fun, 2) do
-    fun.(:close, handle)
+    # We need to read from the ram file before closing it, so we're closing it manually after read.
+    #fun.(:close, handle)
+    :ok
   end
 
   defp extract_opts(list) do
