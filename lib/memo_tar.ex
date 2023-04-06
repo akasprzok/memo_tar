@@ -8,18 +8,19 @@ defmodule MemoTar do
   alias MemoTar.Tar
 
   typedstruct do
-    field :file_device, IO.device()
-    field :tar_device, IO.device()
+    field(:file_device, IO.device())
+    field(:tar_device, IO.device())
   end
 
   @spec open :: {:ok, t()} | {:error, term()}
   def open do
     with {:ok, file_device} <- File.open("", [:read, :write, :ram]),
-      {:ok, tar_device} <- Tar.open({:file, file_device}, [:write]) do
-      {:ok, %__MODULE__{
-        file_device: file_device,
-        tar_device: tar_device
-      }}
+         {:ok, tar_device} <- Tar.open({:file, file_device}, [:write]) do
+      {:ok,
+       %__MODULE__{
+         file_device: file_device,
+         tar_device: tar_device
+       }}
     end
   end
 
@@ -36,18 +37,25 @@ defmodule MemoTar do
   @spec close(t()) :: {:ok, binary()}
   def close(%__MODULE__{} = tar) do
     with :ok <- Tar.close(tar.tar_device),
-      content <- read(tar.file_device),
-      :ok <- File.close(tar.file_device) do
+         content <- read(tar.file_device),
+         :ok <- File.close(tar.file_device) do
       {:ok, content}
     end
   end
 
   @spec create([{Path.t(), binary()}]) :: {:ok, binary()} | {:error, term()}
   def create(files) do
-    dirs = Enum.map(files, fn {path, _content} -> Path.dirname(path) end) |> Enum.uniq() |> Enum.reject(&(&1 == "."))
+    dirs =
+      files
+      |> Enum.flat_map(fn {path, _content} ->
+        divide_path(path)
+      end)
+      |> Enum.uniq()
+      |> Enum.reject(&(&1 == "."))
+
     with {:ok, tar} <- open(),
-      :ok <- Enum.each(dirs, &add_directory(tar, &1)),
-      :ok <- Enum.each(files, fn {path, content} -> add_file(tar, path, content) end) do
+         :ok <- Enum.each(dirs, &add_directory(tar, &1)),
+         :ok <- Enum.each(files, fn {path, content} -> add_file(tar, path, content) end) do
       close(tar)
     end
   end
@@ -71,4 +79,10 @@ defmodule MemoTar do
     end
   end
 
+  defp divide_path(path) do
+    path
+    |> Path.dirname()
+    |> Path.split()
+    |> Enum.scan(fn component, acc -> Path.join(acc, component) end)
+  end
 end
